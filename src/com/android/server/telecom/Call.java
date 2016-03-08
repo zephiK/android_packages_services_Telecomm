@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.android.server.telecom;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -39,7 +37,6 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
@@ -47,7 +44,7 @@ import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListen
 import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.android.internal.util.Preconditions;
-
+import java.lang.String;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -56,7 +53,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 /**
  *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
  *  from the time the call intent was received by Telecom (vs. the time the call was
@@ -95,7 +91,6 @@ public class Call implements CreateConnectionResponse {
         void onConferenceableCallsChanged(Call call);
         boolean onCanceledViaNewOutgoingCallBroadcast(Call call);
     }
-
     public abstract static class ListenerBase implements Listener {
         @Override
         public void onSuccessfulOutgoingCall(Call call, int callState) {}
@@ -152,7 +147,6 @@ public class Call implements CreateConnectionResponse {
             return false;
         }
     }
-
     private final OnQueryCompleteListener mCallerInfoQueryListener =
             new OnQueryCompleteListener() {
                 /** ${inheritDoc} */
@@ -165,7 +159,6 @@ public class Call implements CreateConnectionResponse {
                     }
                 }
             };
-
     private final OnImageLoadCompleteListener mPhotoLoadListener =
             new OnImageLoadCompleteListener() {
                 /** ${inheritDoc} */
@@ -179,7 +172,6 @@ public class Call implements CreateConnectionResponse {
                     }
                 }
             };
-
     private final Runnable mDirectToVoicemailRunnable = new Runnable() {
         @Override
         public void run() {
@@ -188,69 +180,50 @@ public class Call implements CreateConnectionResponse {
             }
         }
     };
-
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
-
     /** True if this is a currently unknown call that was not previously tracked by CallsManager,
      *  and did not originate via the regular incoming/outgoing call code paths.
      */
     private boolean mIsUnknown;
-
     /**
      * The time this call was created. Beyond logging and such, may also be used for bookkeeping
      * and specifically for marking certain call attempts as failed attempts.
      */
     private long mCreationTimeMillis = System.currentTimeMillis();
-
     /** The time this call was made active. */
     private long mConnectTimeMillis = 0;
-
     /** The time this call was disconnected. */
     private long mDisconnectTimeMillis = 0;
-
     /** The gateway information associated with this call. This stores the original call handle
      * that the user is attempting to connect to via the gateway, the actual handle to dial in
      * order to connect the call via the gateway, as well as the package name of the gateway
      * service. */
     private GatewayInfo mGatewayInfo;
-
     private PhoneAccountHandle mConnectionManagerPhoneAccountHandle;
-
     private PhoneAccountHandle mTargetPhoneAccountHandle;
-
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-
     private final List<Call> mConferenceableCalls = new ArrayList<>();
-
     /** The state of the call. */
     private int mState;
-
     /** The handle with which to establish this call. */
     private Uri mHandle;
-
     /**
      * The presentation requirements for the handle. See {@link TelecomManager} for valid values.
      */
     private int mHandlePresentation;
-
     /** The caller display name (CNAP) set by the connection service. */
     private String mCallerDisplayName;
-
     /**
      * The presentation requirements for the handle. See {@link TelecomManager} for valid values.
      */
     private int mCallerDisplayNamePresentation;
-
     /**
      * The connection service which is attempted or already connecting this call.
      */
     private ConnectionServiceWrapper mConnectionService;
-
     private boolean mIsEmergencyCall;
-
     private boolean mSpeakerphoneOn;
-
     /**
      * Tracks the video states which were applicable over the duration of a call.
      * See {@link VideoProfile} for a list of valid video states.
@@ -259,17 +232,13 @@ public class Call implements CreateConnectionResponse {
      * missed.
      */
     private int mVideoStateHistory;
-
     private int mVideoState;
-
     /**
      * Disconnect cause for the call. Only valid if the state of the call is STATE_DISCONNECTED.
      * See {@link android.telecom.DisconnectCause}.
      */
     private DisconnectCause mDisconnectCause = new DisconnectCause(DisconnectCause.UNKNOWN);
-
     private Bundle mIntentExtras = new Bundle();
-
     /** Set of listeners on this call.
      *
      * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
@@ -278,38 +247,25 @@ public class Call implements CreateConnectionResponse {
      */
     private final Set<Listener> mListeners = Collections.newSetFromMap(
             new ConcurrentHashMap<Listener, Boolean>(8, 0.9f, 1));
-
     private CreateConnectionProcessor mCreateConnectionProcessor;
-
     /** Caller information retrieved from the latest contact query. */
     private CallerInfo mCallerInfo;
-
     /** The latest token used with a contact info query. */
     private int mQueryToken = 0;
-
     /** Whether this call is requesting that Telecom play the ringback tone on its behalf. */
     private boolean mRingbackRequested = false;
-
     /** Whether direct-to-voicemail query is pending. */
     private boolean mDirectToVoicemailQueryPending;
-
     private int mConnectionCapabilities;
-
     private boolean mIsConference = false;
-
     private Call mParentCall = null;
-
     private List<Call> mChildCalls = new LinkedList<>();
-
     /** Set of text message responses allowed for this call, if applicable. */
     private List<String> mCannedSmsResponses = Collections.EMPTY_LIST;
-
     /** Whether an attempt has been made to load the text message responses. */
     private boolean mCannedSmsResponsesLoadingStarted = false;
-
     private IVideoProvider mVideoProvider;
     private VideoProviderProxy mVideoProviderProxy;
-
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
     private Bundle mExtras;
@@ -319,17 +275,13 @@ public class Call implements CreateConnectionResponse {
     private final CallsManager mCallsManager;
     private final TelecomSystem.SyncRoot mLock;
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
-
     private boolean mWasConferencePreviouslyMerged = false;
-
     // For conferences which support merge/swap at their level, we retain a notion of an active
     // call. This is used for BluetoothPhoneService.  In order to support hold/merge, it must have
     // the notion of the current "active" call within the conference call. This maintains the
     // "active" call and switches every time the user hits "swap".
     private Call mConferenceLevelActiveCall = null;
-
     private boolean mIsLocallyDisconnecting = false;
-
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -371,10 +323,8 @@ public class Call implements CreateConnectionResponse {
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
-
         Log.event(this, Log.Events.CREATED);
     }
-
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -408,24 +358,19 @@ public class Call implements CreateConnectionResponse {
                 callerInfoAsyncQueryFactory, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
-
         mConnectTimeMillis = connectTimeMillis;
     }
-
     public void addListener(Listener listener) {
         mListeners.add(listener);
     }
-
     public void removeListener(Listener listener) {
         if (listener != null) {
             mListeners.remove(listener);
         }
     }
-
     public void destroy() {
         Log.event(this, Log.Events.DESTROYED);
     }
-
     /** {@inheritDoc} */
     @Override
     public String toString() {
@@ -433,9 +378,6 @@ public class Call implements CreateConnectionResponse {
         if (mConnectionService != null && mConnectionService.getComponentName() != null) {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
-
-
-
         return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s]]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
@@ -446,7 +388,6 @@ public class Call implements CreateConnectionResponse {
                 getParentCall() != null,
                 Connection.capabilitiesToString(getConnectionCapabilities()));
     }
-
     /**
      * Builds a debug-friendly description string for a video state.
      * <p>
@@ -459,48 +400,38 @@ public class Call implements CreateConnectionResponse {
     private String getVideoStateDescription(int videoState) {
         StringBuilder sb = new StringBuilder();
         sb.append("A");
-
         if (VideoProfile.isTransmissionEnabled(videoState)) {
             sb.append("T");
         }
-
         if (VideoProfile.isReceptionEnabled(videoState)) {
             sb.append("R");
         }
-
         if (VideoProfile.isPaused(videoState)) {
             sb.append("P");
         }
-
         return sb.toString();
     }
-
     int getState() {
         return mState;
     }
-
     private boolean shouldContinueProcessingAfterDisconnect() {
         // Stop processing once the call is active.
         if (!CreateConnectionTimeout.isCallBeingPlaced(this)) {
             return false;
         }
-
         // Make sure that there are additional connection services to process.
         if (mCreateConnectionProcessor == null
             || !mCreateConnectionProcessor.isProcessingComplete()
             || !mCreateConnectionProcessor.hasMorePhoneAccounts()) {
             return false;
         }
-
         if (mDisconnectCause == null) {
             return false;
         }
-
         // Continue processing if the current attempt failed or timed out.
         return mDisconnectCause.getCode() == DisconnectCause.ERROR ||
             mCreateConnectionProcessor.isCallTimedOut();
     }
-
     /**
      * Sets the call state. Although there exists the notion of appropriate state transitions
      * (see {@link CallState}), in practice those expectations break down when cellular systems
@@ -510,16 +441,13 @@ public class Call implements CreateConnectionResponse {
     public void setState(int newState, String tag) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
-
             if (newState == CallState.DISCONNECTED && shouldContinueProcessingAfterDisconnect()) {
                 Log.w(this, "continuing processing disconnected call with another service");
                 mCreateConnectionProcessor.continueProcessingIfPossible(this, mDisconnectCause);
                 return;
             }
-
             mState = newState;
             maybeLoadCannedSmsResponses();
-
             if (mState == CallState.ACTIVE || mState == CallState.ON_HOLD) {
                 if (mConnectTimeMillis == 0) {
                     // We check to see if mConnectTime is already set to prevent the
@@ -527,13 +455,11 @@ public class Call implements CreateConnectionResponse {
                     // ACTIVE/ON_HOLD
                     mConnectTimeMillis = System.currentTimeMillis();
                 }
-
                 // Video state changes are normally tracked against history when a call is active.
                 // When the call goes active we need to be sure we track the history in case the
                 // state never changes during the duration of the call -- we want to ensure we
                 // always know the state at the start of the call.
                 mVideoStateHistory = mVideoStateHistory | mVideoState;
-
                 // We're clearly not disconnected, so reset the disconnected time.
                 mDisconnectTimeMillis = 0;
             } else if (mState == CallState.DISCONNECTED) {
@@ -546,7 +472,6 @@ public class Call implements CreateConnectionResponse {
                 // Ensure when an incoming call is missed that the video state history is updated.
                 mVideoStateHistory |= mVideoState;
             }
-
             // Log the state transition event
             String event = null;
             Object data = null;
@@ -588,35 +513,27 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     void setRingbackRequested(boolean ringbackRequested) {
         mRingbackRequested = ringbackRequested;
         for (Listener l : mListeners) {
             l.onRingbackRequested(this, mRingbackRequested);
         }
     }
-
     boolean isRingbackRequested() {
         return mRingbackRequested;
     }
-
     boolean isConference() {
         return mIsConference;
     }
-
     public Uri getHandle() {
         return mHandle;
     }
-
     int getHandlePresentation() {
         return mHandlePresentation;
     }
-
-
     void setHandle(Uri handle) {
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
     }
-
     public void setHandle(Uri handle, int presentation) {
         if (!Objects.equals(handle, mHandle) || presentation != mHandlePresentation) {
             mHandlePresentation = presentation;
@@ -632,7 +549,6 @@ public class Call implements CreateConnectionResponse {
                     mHandle = null;
                 }
             }
-
             // Let's not allow resetting of the emergency flag. Once a call becomes an emergency
             // call, it will remain so for the rest of it's lifetime.
             if (!mIsEmergencyCall) {
@@ -645,15 +561,12 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     String getCallerDisplayName() {
         return mCallerDisplayName;
     }
-
     int getCallerDisplayNamePresentation() {
         return mCallerDisplayNamePresentation;
     }
-
     void setCallerDisplayName(String callerDisplayName, int presentation) {
         if (!TextUtils.equals(callerDisplayName, mCallerDisplayName) ||
                 presentation != mCallerDisplayNamePresentation) {
@@ -664,11 +577,9 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     public String getName() {
         return mCallerInfo == null ? null : mCallerInfo.name;
     }
-
     public String getNumber() {
         if (mCallerInfo != null) {
             return mCallerInfo.phoneNumber;
@@ -676,14 +587,15 @@ public class Call implements CreateConnectionResponse {
         return mHandle == null ? null : mHandle.getSchemeSpecificPart();
     }
 
+    public String getPhoneNumber() {
+        return mCallerInfo == null ? null : mCallerInfo.phoneNumber;
+    }
     public Bitmap getPhotoIcon() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhotoIcon;
     }
-
     public Drawable getPhoto() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhoto;
     }
-
     /**
      * @param disconnectCause The reason for the disconnection, represented by
      *         {@link android.telecom.DisconnectCause}.
@@ -693,15 +605,12 @@ public class Call implements CreateConnectionResponse {
         // separate from setState.
         mDisconnectCause = disconnectCause;
     }
-
     public DisconnectCause getDisconnectCause() {
         return mDisconnectCause;
     }
-
     boolean isEmergencyCall() {
         return mIsEmergencyCall;
     }
-
     /**
      * @return The original handle this call is associated with. In-call services should use this
      * handle when indicating in their UI the handle that is being called.
@@ -712,19 +621,15 @@ public class Call implements CreateConnectionResponse {
         }
         return getHandle();
     }
-
     GatewayInfo getGatewayInfo() {
         return mGatewayInfo;
     }
-
     void setGatewayInfo(GatewayInfo gatewayInfo) {
         mGatewayInfo = gatewayInfo;
     }
-
     PhoneAccountHandle getConnectionManagerPhoneAccount() {
         return mConnectionManagerPhoneAccountHandle;
     }
-
     void setConnectionManagerPhoneAccount(PhoneAccountHandle accountHandle) {
         if (!Objects.equals(mConnectionManagerPhoneAccountHandle, accountHandle)) {
             mConnectionManagerPhoneAccountHandle = accountHandle;
@@ -732,13 +637,10 @@ public class Call implements CreateConnectionResponse {
                 l.onConnectionManagerPhoneAccountChanged(this);
             }
         }
-
     }
-
     PhoneAccountHandle getTargetPhoneAccount() {
         return mTargetPhoneAccountHandle;
     }
-
     void setTargetPhoneAccount(PhoneAccountHandle accountHandle) {
         if (!Objects.equals(mTargetPhoneAccountHandle, accountHandle)) {
             mTargetPhoneAccountHandle = accountHandle;
@@ -747,11 +649,9 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     boolean isIncoming() {
         return mIsIncoming;
     }
-
     /**
      * @return The "age" of this call object in milliseconds, which typically also represents the
      *     period since this call was added to the set pending outgoing calls, see
@@ -771,10 +671,8 @@ public class Call implements CreateConnectionResponse {
             // We connected, but have not yet disconnected
             return System.currentTimeMillis() - mConnectTimeMillis;
         }
-
         return mDisconnectTimeMillis - mConnectTimeMillis;
     }
-
     /**
      * @return The time when this call object was created and added to the set of pending outgoing
      *     calls.
@@ -782,23 +680,18 @@ public class Call implements CreateConnectionResponse {
     public long getCreationTimeMillis() {
         return mCreationTimeMillis;
     }
-
     public void setCreationTimeMillis(long time) {
         mCreationTimeMillis = time;
     }
-
     long getConnectTimeMillis() {
         return mConnectTimeMillis;
     }
-
     int getConnectionCapabilities() {
         return mConnectionCapabilities;
     }
-
     void setConnectionCapabilities(int connectionCapabilities) {
         setConnectionCapabilities(connectionCapabilities, false /* forceUpdate */);
     }
-
     void setConnectionCapabilities(int connectionCapabilities, boolean forceUpdate) {
         Log.v(this, "setConnectionCapabilities: %s", Connection.capabilitiesToString(
                 connectionCapabilities));
@@ -809,27 +702,21 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     Call getParentCall() {
         return mParentCall;
     }
-
     List<Call> getChildCalls() {
         return mChildCalls;
     }
-
     boolean wasConferencePreviouslyMerged() {
         return mWasConferencePreviouslyMerged;
     }
-
     Call getConferenceLevelActiveCall() {
         return mConferenceLevelActiveCall;
     }
-
     ConnectionServiceWrapper getConnectionService() {
         return mConnectionService;
     }
-
     /**
      * Retrieves the {@link Context} for the call.
      *
@@ -838,17 +725,13 @@ public class Call implements CreateConnectionResponse {
     Context getContext() {
         return mContext;
     }
-
     void setConnectionService(ConnectionServiceWrapper service) {
         Preconditions.checkNotNull(service);
-
         clearConnectionService();
-
         service.incrementAssociatedCallCount();
         mConnectionService = service;
         mConnectionService.addCall(this);
     }
-
     /**
      * Clears the associated connection service.
      */
@@ -857,7 +740,6 @@ public class Call implements CreateConnectionResponse {
             ConnectionServiceWrapper serviceTemp = mConnectionService;
             mConnectionService = null;
             serviceTemp.removeCall(this);
-
             // Decrementing the count can cause the service to unbind, which itself can trigger the
             // service-death code.  Since the service death code tries to clean up any associated
             // calls, we need to make sure to remove that information (e.g., removeCall()) before
@@ -867,7 +749,6 @@ public class Call implements CreateConnectionResponse {
             decrementAssociatedCallCount(serviceTemp);
         }
     }
-
     private void processDirectToVoicemail() {
         if (mDirectToVoicemailQueryPending) {
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
@@ -879,17 +760,14 @@ public class Call implements CreateConnectionResponse {
             } else {
                 // TODO: Make this class (not CallsManager) responsible for changing
                 // the call state to STATE_RINGING.
-
                 // TODO: Replace this with state transition to STATE_RINGING.
                 for (Listener l : mListeners) {
                     l.onSuccessfulIncomingCall(this);
                 }
             }
-
             mDirectToVoicemailQueryPending = false;
         }
     }
-
     /**
      * Starts the create connection sequence. Upon completion, there should exist an active
      * connection through a connection service (or the call will have failed).
@@ -902,7 +780,6 @@ public class Call implements CreateConnectionResponse {
                 phoneAccountRegistrar, mContext);
         mCreateConnectionProcessor.process();
     }
-
     @Override
     public void handleCreateConnectionSuccess(
             CallIdMapper idMapper,
@@ -919,12 +796,10 @@ public class Call implements CreateConnectionResponse {
         setIsVoipAudioMode(connection.getIsVoipAudioMode());
         setStatusHints(connection.getStatusHints());
         setExtras(connection.getExtras());
-
         mConferenceableCalls.clear();
         for (String id : connection.getConferenceableConnectionIds()) {
             mConferenceableCalls.add(idMapper.getCall(id));
         }
-
         if (mIsUnknown) {
             for (Listener l : mListeners) {
                 l.onSuccessfulUnknownCall(this, getStateFromConnectionState(connection.getState()));
@@ -935,7 +810,6 @@ public class Call implements CreateConnectionResponse {
             // direct-to-voicemail property before deciding if we want to show the incoming call to
             // the user or if we want to reject the call.
             mDirectToVoicemailQueryPending = true;
-
             // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
             // showing the user the incoming call screen.
             mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis(
@@ -947,13 +821,11 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     @Override
     public void handleCreateConnectionFailure(DisconnectCause disconnectCause) {
         clearConnectionService();
         setDisconnectCause(disconnectCause);
         mCallsManager.markCallAsDisconnected(this, disconnectCause);
-
         if (mIsUnknown) {
             for (Listener listener : mListeners) {
                 listener.onFailedUnknownCall(this);
@@ -968,7 +840,6 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     /**
      * Plays the specified DTMF tone.
      */
@@ -981,7 +852,6 @@ public class Call implements CreateConnectionResponse {
             Log.event(this, Log.Events.START_DTMF, Log.pii(digit));
         }
     }
-
     /**
      * Stops playing any currently playing DTMF tone.
      */
@@ -994,20 +864,28 @@ public class Call implements CreateConnectionResponse {
             mConnectionService.stopDtmfTone(this);
         }
     }
-
+    /**
+     * Silences the ringer.
+     */
+    void silence() {
+        if (mConnectionService == null) {
+            Log.w(this, "silence() request on a call without a connection service.");
+        } else {
+            Log.i(this, "Send silence to connection service for call %s", this);
+            Log.event(this, Log.Events.SILENCE);
+            mConnectionService.silence(this);
+        }
+    }
     void disconnect() {
         disconnect(false);
     }
-
     /**
      * Attempts to disconnect the call through the connection service.
      */
     void disconnect(boolean wasViaNewOutgoingCallBroadcaster) {
         Log.event(this, Log.Events.REQUEST_DISCONNECT);
-
         // Track that the call is now locally disconnecting.
         setLocallyDisconnecting(true);
-
         if (mState == CallState.NEW || mState == CallState.SELECT_PHONE_ACCOUNT ||
                 mState == CallState.CONNECTING) {
             Log.v(this, "Aborting call %s", this);
@@ -1026,7 +904,6 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     void abort(boolean wasViaNewOutgoingCallBroadcaster) {
         if (mCreateConnectionProcessor != null &&
                 !mCreateConnectionProcessor.isProcessingComplete()) {
@@ -1051,13 +928,11 @@ public class Call implements CreateConnectionResponse {
                     }
                 }
             }
-
             handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.CANCELED));
         } else {
             Log.v(this, "Cannot abort a call which is neither SELECT_PHONE_ACCOUNT or CONNECTING");
         }
     }
-
     /**
      * Answers the call if it is ringing.
      *
@@ -1065,7 +940,6 @@ public class Call implements CreateConnectionResponse {
      */
     void answer(int videoState) {
         Preconditions.checkNotNull(mConnectionService);
-
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'answer' and Telecom receives the command.
         if (isRinging("answer")) {
@@ -1077,7 +951,6 @@ public class Call implements CreateConnectionResponse {
             Log.event(this, Log.Events.REQUEST_ACCEPT);
         }
     }
-
     /**
      * Rejects the call if it is ringing.
      *
@@ -1086,42 +959,35 @@ public class Call implements CreateConnectionResponse {
      */
     void reject(boolean rejectWithMessage, String textMessage) {
         Preconditions.checkNotNull(mConnectionService);
-
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
             // Ensure video state history tracks video state at time of rejection.
             mVideoStateHistory |= mVideoState;
-
-            mConnectionService.reject(this);
+            mConnectionService.reject(this, rejectWithMessage, textMessage);
             Log.event(this, Log.Events.REQUEST_REJECT);
         }
     }
-
     /**
      * Puts the call on hold if it is currently active.
      */
     void hold() {
         Preconditions.checkNotNull(mConnectionService);
-
         if (mState == CallState.ACTIVE) {
             mConnectionService.hold(this);
             Log.event(this, Log.Events.REQUEST_HOLD);
         }
     }
-
     /**
      * Releases the call from hold if it is currently active.
      */
     void unhold() {
         Preconditions.checkNotNull(mConnectionService);
-
         if (mState == CallState.ON_HOLD) {
             mConnectionService.unhold(this);
             Log.event(this, Log.Events.REQUEST_UNHOLD);
         }
     }
-
     /** Checks if this is a live call or not. */
     boolean isAlive() {
         switch (mState) {
@@ -1134,30 +1000,24 @@ public class Call implements CreateConnectionResponse {
                 return true;
         }
     }
-
     boolean isActive() {
         return mState == CallState.ACTIVE;
     }
-
     Bundle getExtras() {
         return mExtras;
     }
-
     void setExtras(Bundle extras) {
         mExtras = extras;
         for (Listener l : mListeners) {
             l.onExtrasChanged(this);
         }
     }
-
     Bundle getIntentExtras() {
         return mIntentExtras;
     }
-
     void setIntentExtras(Bundle extras) {
         mIntentExtras = extras;
     }
-
     /**
      * @return the uri of the contact associated with this call.
      */
@@ -1167,27 +1027,22 @@ public class Call implements CreateConnectionResponse {
         }
         return Contacts.getLookupUri(mCallerInfo.contactIdOrZero, mCallerInfo.lookupKey);
     }
-
     Uri getRingtone() {
         return mCallerInfo == null ? null : mCallerInfo.contactRingtoneUri;
     }
-
     void onPostDialWait(String remaining) {
         for (Listener l : mListeners) {
             l.onPostDialWait(this, remaining);
         }
     }
-
     void onPostDialChar(char nextChar) {
         for (Listener l : mListeners) {
             l.onPostDialChar(this, nextChar);
         }
     }
-
     void postDialContinue(boolean proceed) {
         mConnectionService.onPostDialContinue(this, proceed);
     }
-
     void conferenceWith(Call otherCall) {
         if (mConnectionService == null) {
             Log.w(this, "conference requested on a call without a connection service.");
@@ -1196,7 +1051,6 @@ public class Call implements CreateConnectionResponse {
             mConnectionService.conference(this, otherCall);
         }
     }
-
     void splitFromConference() {
         if (mConnectionService == null) {
             Log.w(this, "splitting from conference call without a connection service");
@@ -1205,7 +1059,6 @@ public class Call implements CreateConnectionResponse {
             mConnectionService.splitFromConference(this);
         }
     }
-
     void mergeConference() {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
@@ -1215,7 +1068,6 @@ public class Call implements CreateConnectionResponse {
             mWasConferencePreviouslyMerged = true;
         }
     }
-
     void swapConference() {
         if (mConnectionService == null) {
             Log.w(this, "swapping conference calls without a connection service.");
@@ -1238,7 +1090,6 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     void setParentCall(Call parentCall) {
         if (parentCall == this) {
             Log.e(this, new Exception(), "setting the parent to self");
@@ -1249,7 +1100,6 @@ public class Call implements CreateConnectionResponse {
             return;
         }
         Preconditions.checkState(parentCall == null || mParentCall == null);
-
         Call oldParent = mParentCall;
         if (mParentCall != null) {
             mParentCall.removeChildCall(this);
@@ -1258,45 +1108,36 @@ public class Call implements CreateConnectionResponse {
         if (mParentCall != null) {
             mParentCall.addChildCall(this);
         }
-
         Log.event(this, Log.Events.SET_PARENT, mParentCall);
         for (Listener l : mListeners) {
             l.onParentChanged(this);
         }
     }
-
     void setConferenceableCalls(List<Call> conferenceableCalls) {
         mConferenceableCalls.clear();
         mConferenceableCalls.addAll(conferenceableCalls);
-
         for (Listener l : mListeners) {
             l.onConferenceableCallsChanged(this);
         }
     }
-
     List<Call> getConferenceableCalls() {
         return mConferenceableCalls;
     }
-
     boolean can(int capability) {
         return (mConnectionCapabilities & capability) == capability;
     }
-
     private void addChildCall(Call call) {
         if (!mChildCalls.contains(call)) {
             // Set the pseudo-active call to the latest child added to the conference.
             // See definition of mConferenceLevelActiveCall for more detail.
             mConferenceLevelActiveCall = call;
             mChildCalls.add(call);
-
             Log.event(this, Log.Events.ADD_CHILD, call);
-
             for (Listener l : mListeners) {
                 l.onChildrenChanged(this);
             }
         }
     }
-
     private void removeChildCall(Call call) {
         if (mChildCalls.remove(call)) {
             Log.event(this, Log.Events.REMOVE_CHILD, call);
@@ -1305,7 +1146,6 @@ public class Call implements CreateConnectionResponse {
             }
         }
     }
-
     /**
      * Return whether the user can respond to this {@code Call} via an SMS message.
      *
@@ -1330,13 +1170,11 @@ public class Call implements CreateConnectionResponse {
         if (mState != CallState.RINGING) {
             return false;
         }
-
         if (getHandle() == null) {
             // No incoming number known or call presentation is "PRESENTATION_RESTRICTED", in
             // other words, the user should not be able to see the incoming phone number.
             return false;
         }
-
         if (PhoneNumberUtils.isUriNumber(getHandle().toString())) {
             // The incoming number is actually a URI (i.e. a SIP address),
             // not a regular PSTN phone number, and we can't send SMSes to
@@ -1345,27 +1183,22 @@ public class Call implements CreateConnectionResponse {
             // there some SIP-specific equivalent to sending a text message?)
             return false;
         }
-
         // Is there a valid SMS application on the phone?
         if (SmsApplication.getDefaultRespondViaMessageApplication(mContext,
                 true /*updateIfNeeded*/) == null) {
             return false;
         }
-
         // TODO: with some carriers (in certain countries) you *can* actually
         // tell whether a given number is a mobile phone or not. So in that
         // case we could potentially return false here if the incoming call is
         // from a land line.
-
         // If none of the above special cases apply, it's OK to enable the
         // "Respond via SMS" feature.
         return true;
     }
-
     List<String> getCannedSmsResponses() {
         return mCannedSmsResponses;
     }
-
     /**
      * We need to make sure that before we move a call to the disconnected state, it no
      * longer has any parent/child relationships.  We want to do this to ensure that the InCall
@@ -1375,7 +1208,6 @@ public class Call implements CreateConnectionResponse {
     private void fixParentAfterDisconnect() {
         setParentCall(null);
     }
-
     /**
      * @return True if the call is ringing, else logs the action name.
      */
@@ -1383,24 +1215,20 @@ public class Call implements CreateConnectionResponse {
         if (mState == CallState.RINGING) {
             return true;
         }
-
         Log.i(this, "Request to %s a non-ringing call %s", actionName, this);
         return false;
     }
-
     @SuppressWarnings("rawtypes")
     private void decrementAssociatedCallCount(ServiceBinder binder) {
         if (binder != null) {
             binder.decrementAssociatedCallCount();
         }
     }
-
     /**
      * Looks up contact information based on the current handle.
      */
     private void startCallerInfoLookup() {
         final String number = mHandle == null ? null : mHandle.getSchemeSpecificPart();
-
         mQueryToken++;  // Updated so that previous queries can no longer set the information.
         mCallerInfo = null;
         if (!TextUtils.isEmpty(number)) {
@@ -1418,7 +1246,6 @@ public class Call implements CreateConnectionResponse {
             });
         }
     }
-
     /**
      * Saves the specified caller info if the specified token matches that of the last query
      * that was made.
@@ -1429,11 +1256,9 @@ public class Call implements CreateConnectionResponse {
     private void setCallerInfo(CallerInfo callerInfo, int token) {
         Trace.beginSection("setCallerInfo");
         Preconditions.checkNotNull(callerInfo);
-
         if (mQueryToken == token) {
             mCallerInfo = callerInfo;
             Log.i(this, "CallerInfo received for %s: %s", Log.piiHandle(mHandle), callerInfo);
-
             if (mCallerInfo.contactDisplayPhotoUri != null) {
                 Log.d(this, "Searching person uri %s for call %s",
                         mCallerInfo.contactDisplayPhotoUri, this);
@@ -1449,16 +1274,13 @@ public class Call implements CreateConnectionResponse {
                     l.onCallerInfoChanged(this);
                 }
             }
-
             processDirectToVoicemail();
         }
         Trace.endSection();
     }
-
     CallerInfo getCallerInfo() {
         return mCallerInfo;
     }
-
     /**
      * Saves the specified photo information if the specified token matches that of the last query.
      *
@@ -1470,13 +1292,11 @@ public class Call implements CreateConnectionResponse {
         if (mQueryToken == token) {
             mCallerInfo.cachedPhoto = photo;
             mCallerInfo.cachedPhotoIcon = photoIcon;
-
             for (Listener l : mListeners) {
                 l.onCallerInfoChanged(this);
             }
         }
     }
-
     private void maybeLoadCannedSmsResponses() {
         if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
             Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
@@ -1493,7 +1313,6 @@ public class Call implements CreateConnectionResponse {
                                 }
                             }
                         }
-
                         @Override
                         public void onError(Void request, int code, String msg) {
                             Log.w(Call.this, "Error obtaining canned SMS responses: %d %s", code,
@@ -1506,14 +1325,12 @@ public class Call implements CreateConnectionResponse {
             Log.d(this, "maybeLoadCannedSmsResponses: doing nothing");
         }
     }
-
     /**
      * Sets speakerphone option on when call begins.
      */
     public void setStartWithSpeakerphoneOn(boolean startWithSpeakerphone) {
         mSpeakerphoneOn = startWithSpeakerphone;
     }
-
     /**
      * Returns speakerphone option.
      *
@@ -1522,13 +1339,11 @@ public class Call implements CreateConnectionResponse {
     public boolean getStartWithSpeakerphoneOn() {
         return mSpeakerphoneOn;
     }
-
     /**
      * Sets a video call provider for the call.
      */
     public void setVideoProvider(IVideoProvider videoProvider) {
         Log.v(this, "setVideoProvider");
-
         if (videoProvider != null ) {
             try {
                 mVideoProviderProxy = new VideoProviderProxy(mLock, videoProvider, this);
@@ -1538,14 +1353,11 @@ public class Call implements CreateConnectionResponse {
         } else {
             mVideoProviderProxy = null;
         }
-
         mVideoProvider = videoProvider;
-
         for (Listener l : mListeners) {
             l.onVideoCallProviderChanged(Call.this);
         }
     }
-
     /**
      * @return The {@link Connection.VideoProvider} binder.
      */
@@ -1553,17 +1365,14 @@ public class Call implements CreateConnectionResponse {
         if (mVideoProviderProxy == null) {
             return null;
         }
-
         return mVideoProviderProxy.getInterface();
     }
-
     /**
      * @return The {@link VideoProviderProxy} for this call.
      */
     public VideoProviderProxy getVideoProviderProxy() {
         return mVideoProviderProxy;
     }
-
     /**
      * The current video state for the call.
      * See {@link VideoProfile} for a list of valid video states.
@@ -1571,7 +1380,6 @@ public class Call implements CreateConnectionResponse {
     public int getVideoState() {
         return mVideoState;
     }
-
     /**
      * Returns the video states which were applicable over the duration of a call.
      * See {@link VideoProfile} for a list of valid video states.
@@ -1581,7 +1389,6 @@ public class Call implements CreateConnectionResponse {
     public int getVideoStateHistory() {
         return mVideoStateHistory;
     }
-
     /**
      * Determines the current video state for the call.
      * For an outgoing call determines the desired video state for the call.
@@ -1600,43 +1407,35 @@ public class Call implements CreateConnectionResponse {
         if (isActive() || getState() == CallState.DISCONNECTED) {
             mVideoStateHistory = mVideoStateHistory | videoState;
         }
-
         mVideoState = videoState;
         for (Listener l : mListeners) {
             l.onVideoStateChanged(this);
         }
     }
-
     public boolean getIsVoipAudioMode() {
         return mIsVoipAudioMode;
     }
-
     public void setIsVoipAudioMode(boolean audioModeIsVoip) {
         mIsVoipAudioMode = audioModeIsVoip;
         for (Listener l : mListeners) {
             l.onIsVoipAudioModeChanged(this);
         }
     }
-
     public StatusHints getStatusHints() {
         return mStatusHints;
     }
-
     public void setStatusHints(StatusHints statusHints) {
         mStatusHints = statusHints;
         for (Listener l : mListeners) {
             l.onStatusHintsChanged(this);
         }
     }
-
     public boolean isUnknown() {
         return mIsUnknown;
     }
-
     public void setIsUnknown(boolean isUnknown) {
         mIsUnknown = isUnknown;
     }
-
     /**
      * Determines if this call is in a disconnecting state.
      *
@@ -1645,7 +1444,6 @@ public class Call implements CreateConnectionResponse {
     public boolean isLocallyDisconnecting() {
         return mIsLocallyDisconnecting;
     }
-
     /**
      * Sets whether this call is in a disconnecting state.
      *
@@ -1654,7 +1452,6 @@ public class Call implements CreateConnectionResponse {
     private void setLocallyDisconnecting(boolean isLocallyDisconnecting) {
         mIsLocallyDisconnecting = isLocallyDisconnecting;
     }
-
     static int getStateFromConnectionState(int state) {
         switch (state) {
             case Connection.STATE_INITIALIZING:
@@ -1674,7 +1471,6 @@ public class Call implements CreateConnectionResponse {
         }
         return CallState.DISCONNECTED;
     }
-
     /**
      * Determines if this call is in disconnected state and waiting to be destroyed.
      *
